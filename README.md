@@ -90,6 +90,10 @@ lua require('dap-go').setup {
     -- the current working directory to run dlv from, if other than
     -- the current working directory.
     cwd = nil,
+    -- Whether to auto-detect and use the project directory (with go.mod)
+    -- as the working directory for the debugger. Useful for monorepos where
+    -- the project go.mod is inside a subdirectory.
+    auto_project_root = true,
   },
   -- options related to running closest test
   tests = {
