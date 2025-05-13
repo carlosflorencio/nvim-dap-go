@@ -13,7 +13,7 @@ An extension for [nvim-dap][1] providing configurations for launching go debugge
 
 ## Pre-reqs
 
-- Neovim >= 0.9.0
+- Neovim >= 0.10.0
 - [nvim-dap][1]
 - [delve][2] >= 1.7.0
 
@@ -87,13 +87,12 @@ lua require('dap-go').setup {
     -- set to false, otherwise the dlv server creation will fail.
     -- avaliable ui interactive function to prompt for build flags: get_build_flags
     detached = vim.fn.has("win32") == 0,
-    -- the current working directory to run dlv from, if other than
-    -- the current working directory.
-    cwd = nil,
-    -- Whether to auto-detect and use the project directory (with go.mod)
-    -- as the working directory for the debugger. Useful for monorepos where
-    -- the project go.mod is inside a subdirectory.
-    auto_project_root = true,
+    -- the current working directory to run dlv from
+    -- by default, tries to find the project root by looking for the go.mod file
+    -- or the .git directory.
+    -- use a string to set a specific directory, or nil to use the current cwd
+    ---@type table | string | nil
+    cwd = { "go.mod", ".git" },
   },
   -- options related to running closest test
   tests = {

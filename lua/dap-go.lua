@@ -1,34 +1,5 @@
 local ts = require("dap-go-ts")
 
--- Helper function to find go.mod file, stopping the search at git root directory
-local function find_go_mod_within_git_root(path)
-  local current_path = path
-
-  while current_path and current_path ~= "" do
-    -- Check for go.mod file
-    local go_mod_path = current_path .. "/go.mod"
-    if vim.fn.filereadable(go_mod_path) == 1 then
-      return current_path
-    end
-
-    -- Check for .git directory
-    local git_dir_path = current_path .. "/.git"
-    if vim.fn.isdirectory(git_dir_path) == 1 then
-      return current_path
-    end
-
-    -- Move up to parent directory
-    current_path = vim.fn.fnamemodify(current_path, ":h")
-
-    -- Stop if we've reached the filesystem root
-    if current_path == vim.fn.fnamemodify(current_path, ":h") then
-      return nil
-    end
-  end
-
-  return nil
-end
-
 local M = {
   last_testname = "",
   last_testpath = "",
@@ -47,10 +18,7 @@ local default_config = {
     -- where delve needs to be run in attched mode or it will fail (actually crashes).
     detached = vim.fn.has("win32") == 0,
     output_mode = "remote",
-    -- Whether to auto-detect and use the project directory (with go.mod)
-    -- as the working directory for the debugger. Useful for monorepos where
-    -- the project go.mod is inside a subdirectory.
-    auto_project_root = true,
+    cwd = { "go.mod", ".git" },
   },
   tests = {
     verbose = false,
@@ -107,18 +75,20 @@ local function setup_delve_adapter(dap, config)
       command = config.delve.path,
       args = args,
       detached = config.delve.detached,
-      cwd = config.delve.cwd,
     },
     options = {
       initialize_timeout_sec = config.delve.initialize_timeout_sec,
     },
   }
 
+  if type(config.delve.cwd) == "string" then
+    delve_config.executable.cwd = config.delve.cwd
+  end
+
   dap.adapters.go = function(callback, client_config)
-    if config.delve.auto_project_root then
-      local program_dir = vim.fn.fnamemodify(client_config.program, ":h")
-      local go_mod_dir = find_go_mod_within_git_root(program_dir)
-      delve_config.executable.cwd = go_mod_dir
+    if type(config.delve.cwd) == "table" then
+      local project_dir = vim.fs.root(client_config.program, config.delve.cwd)
+      delve_config.executable.cwd = project_dir
     end
 
     if client_config.port == nil then
